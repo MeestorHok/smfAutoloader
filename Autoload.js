@@ -348,26 +348,51 @@ var smfAutoloader = new (function () {
         
         var perSrc = maxPosts / 4;
         
-        /*INSTAGRAM*/
-            var instafeed = new Instafeed({
-                get: 'user',
-                userId: 2174451614, // my personal instagram id
-                target: 'posts',
-                sortBy: 'most-recent',
-                limit: perSrc,
-                mock: true,
-                success: smfAutoloader.formatInstagramJSON,
-                resolution: 'standard_resolution',
-                accessToken: '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8' // make this auto-generated
-            });
-            
-            (iter == 'next') ? instafeed.next() : instafeed.run();
-        /*END INSTAGRAM*/
-        
-        /*FACEBOOK*/
-        /*ENDFACEBOOK*/
+        if (iter == 'next') { // if retrieving new posts
+            self.getInstagram.next(perSrc);
+        } else { // first retrieval of posts
+            self.getInstagram.run(perSrc);
+        }
     };
     
+    /*Instagram Retrieval*/
+    self.getInstagram = new (function () {
+      "use strict";
+      var instafeed;
+      
+      function get (maxPosts) {
+          instafeed = new Instafeed({
+              get: 'user',
+              userId: 2174451614, // my personal instagram id
+              target: 'posts',
+              sortBy: 'most-recent',
+              limit: maxPosts,
+              mock: true,
+              success: smfAutoloader.formatInstagramJSON,
+              resolution: 'standard_resolution',
+              accessToken: '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8' // make this auto-generated
+          });
+      }
+      
+      function next (maxPosts) {
+          get(maxPosts);
+          instafeed.next();
+      }
+      
+      function run (maxPosts) {
+          get(maxPosts);
+          instafeed.run();
+      }
+      
+      var that = {
+        run : run,
+        next : next,
+        get : get
+      };
+      
+      return that;
+    })();
+    /*Instagram JSON formatting for a universal JSON format*/
     self.formatInstagramJSON = function (jsonPosts) {
         var instagramJSON = '"instagram" : {';
         
@@ -405,7 +430,9 @@ var smfAutoloader = new (function () {
         instaDone = true;
         self.finish();
     };
+    /**/
     
+    /*Finish and return HTML formatted posts*/
     self.formatHTML = function () {
         if (results[results.length - 1] == ',') {
             results = results.substring(0, results.length - 1);
@@ -455,12 +482,10 @@ var smfAutoloader = new (function () {
         $('#posts').append("<button class='smfPost' type='button' onclick=\"smfAutoloader.getPosts(20, 'next')\">Load More</button>");
         mGrid.setupBlocks();
     };
-    
     self.finish = function () {
         if (instaDone && faceDone && twitDone && googDone) 
                 self.formatHTML();
     };
-    
     return self;
 })(); // smfAutoloader: makes AJAX calls to PHP to retrieve social media posts
 /**/
