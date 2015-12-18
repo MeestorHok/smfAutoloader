@@ -1,0 +1,130 @@
+
+/********************************Social Media Feed*********************************************/
+
+#posts {
+    width: auto;
+    height: 100%;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+.smfPost {
+    position: absolute;
+    display: inline-block;
+    font-weight: 300;
+    color: #222;
+    background: #F9F9F9;
+    width: 300px;
+    
+    -webkit-transition: all 1s ease-in-out;
+    -moz-transition: all 1s ease-in-out;
+    -o-transition: all 1s ease-in-out;
+    -ms-transition: all 1s ease-in-out;
+    transition: all 1s ease-in-out;
+}
+.smfMasthead {
+    overflow: hidden;
+    width: 300px;
+    min-height: 60px;
+    position: relative;
+    padding: 0;
+    margin: 0;
+    line-height: 0;
+}
+.smfStatus {
+    position: relative;
+    width: 300px;
+    margin: 0;
+    padding: 0;
+    height: 0;
+}
+.smfCornerCut {
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    border-bottom: 60px solid transparent;
+    border-right: 60px solid #222;
+    z-index: 10;
+    top: 0;
+    right: 0;
+    position: absolute;
+}
+.smfCornerColor {
+    width: 0;
+    height: 0;
+    border-bottom: 40px solid transparent;
+    border-right: 40px solid transparent;
+    z-index: 20;
+    top: 0;
+    right: 0;
+    -webkit-transition: border .2s ease;
+    transition: border .2s ease;
+    position: absolute;
+}
+.smfCornerColor:hover {
+    border-bottom-width: 60px;
+    border-right-width: 60px;
+}
+.smfCornerColor:hover ~ .smfCornerIcon {
+    font-size: 45px;
+    top: 15px;
+    right: 15px;
+    opacity: 1;
+}
+.smfCornerIcon {
+    pointer-events: none;
+    position: absolute;
+    text-shadow: -0.5px 0.5px 2px #222;
+    top: 0px;
+    right: 0px;
+    opacity: 0;
+    z-index: 30;
+    color: #eee;
+    font-size: 20px;
+    -webkit-transition: font-size .3s ease, opacity .3s ease, top .3s ease, right .3s ease;
+    transition: font-size .3s ease, opacity .3s ease, top .3s ease, right .3s ease;
+}
+
+.smfFacebook {
+    border-right-color: #3B5998;
+}
+.smfTwitter {
+    border-right-color: #00aced;
+}
+.smfGoogle {
+    border-right-color: #dd4b39;
+}
+.smfInstagram {
+    border-right-color: #9b6954;
+}
+.smfTumblr {
+    border-right-color: #32506d;
+}
+
+.smfPicture > img, .smfShare > img {
+    width: 100%;
+    height: auto;
+}
+.smfText {
+    padding: 2em 1em 1em 1em;
+    margin: 0 0 2em 0;
+}
+.smfDetails {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 0.5em 1em;
+}
+.smfDate {
+    float: left;
+}
+.smfViews {
+    float: right;
+}
+
+
+/******************************End Social Media Feed*********************************************/
+
+
