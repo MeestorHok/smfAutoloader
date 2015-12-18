@@ -346,7 +346,7 @@ var smfAutoloader = new (function () {
         faceDone = true; // switch to false once facebook code is implemented
         twitDone = true; // switch to false once twitter code is implemented
         
-        var perSrc = maxPosts / 4;
+        var perSrc = Math.floor(maxPosts / 4);
         
         if (iter == 'next') { // if retrieving new posts
             self.getInstagram.next(perSrc);
