@@ -360,7 +360,7 @@ var smfAutoloader = new (function () {
       "use strict";
       var instafeed;
       
-      function get (maxPosts) {
+      function get (maxPosts) { // remove instafeed dependency
           instafeed = new Instafeed({
               get: 'user',
               userId: 2174451614, // my personal instagram id
