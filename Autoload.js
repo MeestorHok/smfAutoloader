@@ -358,11 +358,10 @@ var smfAutoloader = new (function () {
     /*Instagram Retrieval*/
     self.getInstagram = new (function () {
       "use strict";
-      var that = this;
-      that.instafeed;
+      var instafeed;
       
-      that.get = function (maxPosts) {
-          that.instafeed = new Instafeed({
+      function get (maxPosts) {
+          instafeed = new Instafeed({
               get: 'user',
               userId: 2174451614, // my personal instagram id
               target: 'posts',
@@ -373,15 +372,22 @@ var smfAutoloader = new (function () {
               resolution: 'standard_resolution',
               accessToken: '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8' // make this auto-generated
           });
-      };
+      }
       
-      that.next = function (maxPosts) {
-          that.get(maxPosts);
-          that.instafeed.next();
-      };
+      function next (maxPosts) {
+          get(maxPosts);
+          instafeed.next();
+      }
       
-      that.run = function (maxPosts) {
-          that.instafeed.run();
+      function run (maxPosts) {
+          get(maxPosts);
+          instafeed.run();
+      }
+      
+      var that = {
+        run : run,
+        next : next,
+        get : get
       };
       
       return that;
