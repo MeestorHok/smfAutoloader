@@ -281,11 +281,11 @@ function date(format, timestamp) {
   };
   return this.date(format, timestamp);
 } // php date function for JS from http://phpjs.org/functions/date/
-/*
+/**/
 function ucfirst(str) { 
     return str.charAt(0).toUpperCase() + str.slice(1); 
 } // php ucfirst function for JS from http://www.corelangs.com/js/string/cap.html#sthash.H5Mt7Hst.dpuf
-/*
+/**/
 function formatHTML (json) {
     var html = "";
     $.each(json, function (timestamp,post) {
@@ -326,7 +326,7 @@ function formatHTML (json) {
     $('#posts').append("<button class='smfPost' type='button' onclick=\"smfAutoloader.getPosts(20, 'next')\">Load More</button>");
     mGrid.setupBlocks();
 }
-/*
+/**/
 var mGrid = new (function () {
     "use strict";
     var self = this;
@@ -373,113 +373,13 @@ var mGrid = new (function () {
     
 })(); // grid: for positioning dynamic grid
 /**/
-var smfAutoloader = new (function () {
-    "use strict";
-    var self = this,
-        results = '{',
-        paginationURLs = {
-            insta: '',
-            face: '',
-            twit: '',
-            goog: ''
-        };
-    
-    self.getPosts = function (maxPosts, previousArray) {
-        if (typeof previousArray === 'object') {
-          results = JSON.stringify(previousArray);
-        } else {
-          results = '{';
-        }
-        
-        var perSrc = Math.floor(maxPosts / 4);
-        if (results[results.length - 1] == '}') { // if results array is closed,
-            results = results.substring(0, results.length - 1) + ',';
-        }
-        /* instagram */
-        results += self.getInstagram(paginationURLs.insta, perSrc);
-        /* facebook
-        results += self.getFacebook.get(paginationURLs.face, perSrc);
-        /* twitter
-        results += self.getTwitter.get(paginationURLs.twit, perSrc);
-        /* google+
-        results += self.getGoogle.get(paginationURLs.goog, perSrc);
-        /**/
-        
-        if (results[results.length - 1] == ',') {
-            results = results.substring(0, results.length - 1);
-        }
-        results += '}';
-        
-        return JSON.parse(results);
-    };
-    
-    /*Instagram Retrieval*/
-    self.getInstagram = function (url, maxPosts) {
-        var response = {};
-        if (typeof url === 'string' && url.length > 0) {
-          // get first set
-          response = {"iter": paginationURLs.insta};
-          paginationURLs.insta = 'third';
-        } else {
-          // get second + set
-          response = {"iter": "first"};
-          paginationURLs.insta = 'second';
-        }
-        return self.formatInstagramJSON(response);
-    };
-    /*Instagram JSON formatting for a universal JSON format*/
-    self.formatInstagramJSON = function (jsonPosts) {
-        var instagramJSON = '';
-        
-        for (var i = 0; i < jsonPosts['data'].length; i++) {
-            var post = jsonPosts['data'][i],
-                picMediaSrc = 'instagram',
-                picType = 'photo',
-                picText = post['caption']['text'],
-                picUsername = post['user']['username'],
-                picUserLink = 'https://www.instagram.com/'+post['user']['username']+'/',
-                picLink = post['link'],
-                picLikeCount = post['likes']['count'],
-                picCommentCount = post['comments']['count'],
-                picSrc = post['images']['standard_resolution']['url'],
-                picTimestampFormatted = date("ymdHis", post['created_time']); // yymmddhhmmss
-            
-            instagramJSON += '"'+picTimestampFormatted+'" : {';
-            instagramJSON += '"mediaSrc" : "'+picMediaSrc+'",';
-            instagramJSON += '"username" : "'+picUsername+'",';
-            instagramJSON += '"userLink" : "'+picUserLink+'",';
-            instagramJSON += '"post" : {';
-                instagramJSON += '"type" : "'+picType+'",';
-                instagramJSON += '"image" : "'+picSrc+'",';
-                instagramJSON += '"postLink" : "'+picLink+'",';
-                instagramJSON += '"postText" : "'+picText+'",';
-                instagramJSON += '"shareLink" : "",';
-                instagramJSON += '"shareTitle" : "",';
-                instagramJSON += '"shareText" : "",';
-                instagramJSON += '"numLikes" : "'+picLikeCount+'",';
-                instagramJSON += '"numComments" : "'+picCommentCount+'",';
-                instagramJSON += '"numRepubs" : ""}';
-            instagramJSON += '},';
-        }
-        
-        return instagramJSON;
-    };
-    /**/
-    
-    return self;
-})(); // smfAutoloader: makes AJAX calls to PHP to retrieve social media posts
-/**/
 function callSMF () {
     posts = smfAutoloader.getPosts(20, posts); 
     console.log(posts);
-    /*
-    formatHTML(posts);
-    */
+    //formatHTML(posts);
 }
 $(window).on("load", function () { // once everything is loaded
     callSMF();
 });
 
-/*
 window.addEventListener('resize', function () { mGrid.setupBlocks(); }, false);
-*/
