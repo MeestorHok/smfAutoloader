@@ -1,3 +1,5 @@
+var posts;
+/**/
 function date(format, timestamp) {
   //  discuss at: http://phpjs.org/functions/date/
   // original by: Carlos R. L. Rodrigues (http://www.jsfromhell.com)
@@ -279,11 +281,52 @@ function date(format, timestamp) {
   };
   return this.date(format, timestamp);
 } // php date function for JS from http://phpjs.org/functions/date/
-
+/**/
 function ucfirst(str) { 
     return str.charAt(0).toUpperCase() + str.slice(1); 
 } // php ucfirst function for JS from http://www.corelangs.com/js/string/cap.html#sthash.H5Mt7Hst.dpuf
-
+/**/
+function formatHTML (json) {
+    var html = "";
+    $.each(json, function (timestamp,post) {
+        html += "<article class='smfPost'>";
+            if(post['post']['type'] == 'photo') {
+                html += "<div class='smfMasthead'>";
+                    html += "<span class='smfCornerCut'></span>";
+                    html += "<a class='smfCornerColor smf"+ucfirst(post['mediaSrc'])+"'href='"+post['userLink']+"' target='_blank' title='"+ucfirst(post['mediaSrc'])+": "+post['username']+"'></a>";
+                    html += "<i class='fa fa-"+post['mediaSrc']+" smfCornerIcon'></i>";
+                    html += "<a class='smfPicture' href='"+post['post']['postLink']+"' target='_blank'>";
+                        html += "<img src='"+post['post']['image']+"' alt='"+post['post']['postText']+"' />";
+                    html += "</a>";
+                html += "</div>";
+            }
+            else if (post['post']['type'] == 'status') {
+                html += "<div class='smfStatus'>";
+                    html += "<span class='smfCornerCut'></span>";
+                    html += "<a class='smfCornerColor smf"+ucfirst(post['mediaSrc'])+"'href='"+post['userLink']+"' target='_blank' title='"+ucfirst(post['mediaSrc'])+": "+post['username']+"'></a>";
+                    html += "<i class='fa fa-"+post['mediaSrc']+" smfCornerIcon'></i>";
+                html += "</div>";
+            }
+            html += "<p class='smfText'>"+post['post']['postText']+"</p>";
+            html += "<div class='smfDetails'>";
+                html += "<span class='smfDate'>"+date("F j, Y", timestamp)+"</span>";
+                html += "<span class='smfViews'>"+post['post']['numLikes']+"&nbsp;<i class='fa fa-heart-o'></i>";
+                if (post['mediaSrc'] == 'facebook' || post['mediaSrc'] == 'instagram' || post['mediaSrc'] == 'google') {
+                    html += "&nbsp;&nbsp;"+post['post']['numComments']+"&nbsp;<i class='fa fa-comments-o'></i>";
+                }
+                if (post['mediaSrc'] == 'facebook' || post['mediaSrc'] == 'twitter' || post['mediaSrc'] == 'google' || post['mediaSrc'] == 'tumblr') {
+                    html += "&nbsp;&nbsp;"+post['post']['numRepubs']+"&nbsp;<i class='fa fa-retweet'></i>";
+                }
+                html += "</span>";
+            html += "</div>";
+        html += "</article>";
+    });
+    
+    $('#posts').append(html);
+    $('#posts').append("<button class='smfPost' type='button' onclick=\"smfAutoloader.getPosts(20, 'next')\">Load More</button>");
+    mGrid.setupBlocks();
+}
+/**/
 var mGrid = new (function () {
     "use strict";
     var self = this;
@@ -329,169 +372,14 @@ var mGrid = new (function () {
     return self;
     
 })(); // grid: for positioning dynamic grid
-
-var smfAutoloader = new (function () {
-    "use strict";
-    var self = this,
-        results = '{',
-        instaDone = false,
-        googDone = false,
-        faceDone = false,
-        twitDone = false;
-    
-    self.getPosts = function (maxPosts, iter) {
-        iter = iter || 'first';
-        instaDone = false;
-        googDone = true; // switch to false once google code is implemented
-        faceDone = true; // switch to false once facebook code is implemented
-        twitDone = true; // switch to false once twitter code is implemented
-        
-        var perSrc = maxPosts / 4;
-        
-        if (iter == 'next') { // if retrieving new posts
-            self.getInstagram.next(perSrc);
-        } else { // first retrieval of posts
-            self.getInstagram.run(perSrc);
-        }
-    };
-    
-    /*Instagram Retrieval*/
-    self.getInstagram = new (function () {
-      "use strict";
-      var instafeed;
-      
-      function get (maxPosts) {
-          instafeed = new Instafeed({
-              get: 'user',
-              userId: 2174451614, // my personal instagram id
-              target: 'posts',
-              sortBy: 'most-recent',
-              limit: maxPosts,
-              mock: true,
-              success: smfAutoloader.formatInstagramJSON,
-              resolution: 'standard_resolution',
-              accessToken: '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8' // make this auto-generated
-          });
-      }
-      
-      function next (maxPosts) {
-          get(maxPosts);
-          instafeed.next();
-      }
-      
-      function run (maxPosts) {
-          get(maxPosts);
-          instafeed.run();
-      }
-      
-      var that = {
-        run : run,
-        next : next,
-        get : get
-      };
-      
-      return that;
-    })();
-    /*Instagram JSON formatting for a universal JSON format*/
-    self.formatInstagramJSON = function (jsonPosts) {
-        var instagramJSON = '"instagram" : {';
-        
-        for (var i = 0; i < jsonPosts['data'].length; i++) {
-            var post = jsonPosts['data'][i],
-                picText = post['caption']['text'],
-                picUsername = post['user']['username'],
-                picUserLink = 'https://www.instagram.com/'+post['user']['username']+'/',
-                picLink = post['link'],
-                picLikeCount = post['likes']['count'],
-                picCommentCount = post['comments']['count'],
-                picSrc = post['images']['standard_resolution']['url'],
-                picTimestampFormatted = date("ymdHis", post['created_time']); // yymmddhhmmss
-            
-            instagramJSON += '"'+picTimestampFormatted+'" : {';
-            instagramJSON += '"username" : "'+picUsername+'",';
-            instagramJSON += '"userLink" : "'+picUserLink+'",';
-            instagramJSON += '"post" : {';
-                instagramJSON += '"type" : "photo",';
-                instagramJSON += '"image" : "'+picSrc+'",';
-                instagramJSON += '"postLink" : "'+picLink+'",';
-                instagramJSON += '"postText" : "'+picText+'",';
-                instagramJSON += '"shareLink" : "",';
-                instagramJSON += '"shareTitle" : "",';
-                instagramJSON += '"shareText" : "",';
-                instagramJSON += '"numLikes" : "'+picLikeCount+'",';
-                instagramJSON += '"numComments" : "'+picCommentCount+'",';
-                instagramJSON += '"numRepubs" : ""}';
-            instagramJSON += '},';
-        }
-        if (instagramJSON[instagramJSON.length - 1] == ',') {
-            instagramJSON = instagramJSON.substring(0, instagramJSON.length - 1);
-        }
-        results += instagramJSON + '},';
-        instaDone = true;
-        self.finish();
-    };
-    /**/
-    
-    /*Finish and return HTML formatted posts*/
-    self.formatHTML = function () {
-        if (results[results.length - 1] == ',') {
-            results = results.substring(0, results.length - 1);
-        }
-        results += '}';
-        
-        var json = JSON.parse(results);
-        var html = "";
-        
-        $.each(json, function (mediaSrc,posts) {
-            $.each(posts, function (timestamp,post) {
-                html += "<article class='smfPost'>";
-                    if(post['post']['type'] == 'photo') {
-                        html += "<div class='smfMasthead'>";
-                            html += "<span class='smfCornerCut'></span>";
-                            html += "<a class='smfCornerColor smf"+ucfirst(mediaSrc)+"'href='"+post['userLink']+"' target='_blank' title='"+ucfirst(mediaSrc)+": "+post['username']+"'></a>";
-                            html += "<i class='fa fa-"+mediaSrc+" smfCornerIcon'></i>";
-                            html += "<a class='smfPicture' href='"+post['post']['postLink']+"' target='_blank'>";
-                                html += "<img src='"+post['post']['image']+"' alt='"+post['post']['postText']+"' />";
-                            html += "</a>";
-                        html += "</div>";
-                    }
-                    else if (post['post']['type'] == 'status') {
-                        html += "<div class='smfStatus'>";
-                            html += "<span class='smfCornerCut'></span>";
-                            html += "<a class='smfCornerColor smf"+ucfirst(mediaSrc)+"'href='"+post['userLink']+"' target='_blank' title='"+ucfirst(mediaSrc)+": "+post['username']+"'></a>";
-                            html += "<i class='fa fa-"+mediaSrc+" smfCornerIcon'></i>";
-                        html += "</div>";
-                    }
-                    html += "<p class='smfText'>"+post['post']['postText']+"</p>";
-                    html += "<div class='smfDetails'>";
-                        html += "<span class='smfDate'>"+date("F j, Y", timestamp)+"</span>";
-                        html += "<span class='smfViews'>"+post['post']['numLikes']+"&nbsp;<i class='fa fa-heart-o'></i>";
-                        if (mediaSrc == 'facebook' || mediaSrc == 'instagram' || mediaSrc == 'google') {
-                            html += "&nbsp;&nbsp;"+post['post']['numComments']+"&nbsp;<i class='fa fa-comments-o'></i>";
-                        }
-                        if (mediaSrc == 'facebook' || mediaSrc == 'twitter' || mediaSrc == 'google' || mediaSrc == 'tumblr') {
-                            html += "&nbsp;&nbsp;"+post['post']['numRepubs']+"&nbsp;<i class='fa fa-retweet'></i>";
-                        }
-                        html += "</span>";
-                    html += "</div>";
-                html += "</article>";
-            });
-        });
-        
-        $('#posts').append(html);
-        $('#posts').append("<button class='smfPost' type='button' onclick=\"smfAutoloader.getPosts(20, 'next')\">Load More</button>");
-        mGrid.setupBlocks();
-    };
-    self.finish = function () {
-        if (instaDone && faceDone && twitDone && googDone) 
-                self.formatHTML();
-    };
-    return self;
-})(); // smfAutoloader: makes AJAX calls to PHP to retrieve social media posts
 /**/
-
+function callSMF () {
+    posts = smfAutoloader.getPosts(20, posts); 
+    console.log(posts);
+    //formatHTML(posts);
+}
 $(window).on("load", function () { // once everything is loaded
-    smfAutoloader.getPosts(20);
+    callSMF();
 });
 
 window.addEventListener('resize', function () { mGrid.setupBlocks(); }, false);
