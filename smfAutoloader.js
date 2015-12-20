@@ -3,6 +3,7 @@
     
     var smfAutoloader;
     smfAutoloader = new (function () {
+   
         var self = this,
             results = '{',
             instagramDone = false,
@@ -20,7 +21,7 @@
                     nextUrl: ''
                 },
                 facebook: {
-                    clientId: '',
+                    appId: '',
                     userId: '',
                     accessToken: '',
                     nextUrl: ''
@@ -70,9 +71,9 @@
                 results = results.substring(0, results.length - 1) + ',';
             }
             
-            // send requests to each media source
+            /* send requests to each media source */
             self.getInstagram();
-            /*
+            /**/
             self.getFacebook();
             /*
             self.getTwitter();
@@ -174,7 +175,19 @@
             
             self.finish('instagram', instagramJSON);
         };
+        /*Facebook Retrieval*/
+        self.getFacebook = function () {
+            FB.init({
+              appId      : controls.facebook.appId,
+              xfbml      : true,
+              version    : 'v2.5'
+            });
+            FB.api("/" + controls.facebook.userId + "/feed", {limit: 5}, function(data){
+                console.log(data);
+            });
+        };
         /**/
+        
         
         self.finish = function (src, posts) {
             switch (src) {
@@ -216,7 +229,7 @@
                 console.log('Ajax calls took too long to respond.');
                 return controls.previousObject;
               } else {
-                setTimeout(self.posts(i), 100);
+                setTimeout(self.posts(i), 500);
               }
           }
         };
