@@ -324,7 +324,7 @@ function formatHTML (json) {
     
     $('#loadMore').remove();
     $('#posts').append(html);
-    $('#posts').append("<button id='loadMore' class='smfPost' style='height:50px' type='button' onclick='callSMF()'>Load More</button>");
+    $('#posts').append("<button id='loadMore' class='smfPost' style='height:50px' type='button' onclick='getPosts()'>Load More</button>");
     mGrid.setupBlocks();
 }
 /**/
@@ -374,27 +374,19 @@ var mGrid = new (function () {
     
 })(); // grid: for positioning dynamic grid
 /**/
-function callSMF () {
-    smfAutoloader.getPosts({
-        previousObject: posts,
-        limit: 20,
-        instagram: {
-            accessToken: '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8',
-            clientId: '0ae24463d64b4169b39a3ab269ad7893',
-            userId: '2174451614'
-        },
-        facebook: {
-            appId: '427622234114035',
-            userId: '100002662657327'
-        }
-    });
-    setTimeout(function () {
+function getPosts () { // function to check if AJAX requests are finished and posts are ready to display
+    if(smfAutoloader.isReady()) {
         posts = smfAutoloader.posts();
+        console.log(posts);
         formatHTML(posts);
-    }, 1000);
+    } else {
+        console.log('AJAX requests still pending, trying again in 1 second...');
+        setTimeout(getPosts, 1000); // using a timer of a few seconds is recommended to prevent maxing out the call stack
+    }
 }
 $(window).on("load", function () { // once everything is loaded
-    callSMF();
+    smfAutoloader.init(20, posts); // parameters are maxPosts and the posts object to append new posts to
+    getPosts();
 });
 
 window.addEventListener('resize', function () { mGrid.setupBlocks(); }, false);

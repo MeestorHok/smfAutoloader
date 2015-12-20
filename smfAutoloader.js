@@ -10,57 +10,42 @@
             facebookDone = true, // set fo false after facebook is implemented
             twitterDone = true, // set fo false after twitter is implemented
             googleDone = true, // set fo false after google is implemented
-            ajaxDone = false,
-            controls = {
-                previousObject: {},
-                limit: 5,
-                instagram: {
-                    clientId: '',
-                    userId: '',
-                    accessToken: '',
-                    nextUrl: ''
-                },
-                facebook: {
-                    appId: '',
-                    userId: '',
-                    accessToken: '',
-                    nextUrl: ''
-                },
-                twitter: {
-                    clientId: '',
-                    userId: '',
-                    accessToken: '',
-                    nextUrl: ''
-                },
-                google: {
-                    clientId: '',
-                    userId: '',
-                    accessToken: '',
-                    nextUrl: ''
-                }
-            };
+            ajaxDone = false; // will only be true once all others are finished
         
-        self.getPosts = function (params) {
+        self.init = function (maxPosts, previousObject) {
             // set parameters for calls
-            var option, value, instaNext, faceNext, twitNext, googNext;
-            if (typeof params === 'object') {
-                instaNext = controls.instagram.nextUrl;
-                faceNext = controls.facebook.nextUrl;
-                twitNext = controls.twitter.nextUrl;
-                googNext = controls.google.nextUrl;
-                for (option in params) {
-                  value = params[option];
-                  controls[option] = value;
+            $.ajax({
+                url: '../secrets.php',
+                dataType: "json",
+                cache: false,
+                success: function (response) {
+                    var controls = { instagram: {},
+                                     facebook: {} };
+                    if (typeof response === 'object') {
+                        
+                        controls['previousObject'] = previousObject || {}; // optional ability to continue on previous object
+                        
+                        controls['instagram']['accessToken'] = response['instagram']['accessToken'];
+                        controls['instagram']['clientId'] = response['instagram']['clientId'];
+                        controls['instagram']['userId'] = response['instagram']['userId'];
+                        
+                        controls['facebook']['appId'] = response['facebook']['appId'];
+                        controls['facebook']['userId'] = response['facebook']['userId'];
+                        controls['facebook']['accessToken'] = response['facebook']['accessToken'];
+                        
+                        controls['limit'] = Math.max(Math.floor(maxPosts / (controls.length - 2)), 1) || 5;
+                    } else {
+                      throw new Error("smfAutoloader requires secrets in the form of an \"object\"");
+                    }
+                    self.getPosts(controls); // start getting posts
+                },
+                error: function () {
+                    throw new Error('There was an error retrieving secrets.');
                 }
-                controls.limit = Math.min(Math.floor(controls.limit / (controls.length - 2)), 5) || 5;
-                controls.instagram.nextUrl = instaNext;
-                controls.facebook.nextUrl = faceNext;
-                controls.twitter.nextUrl = twitNext;
-                controls.google.nextUrl = googNext;
-            } else {
-              throw new Error("smfAutoloader requires parameters in the form of an \"object\"");
-            }
-            
+            });
+        };
+        
+        self.getPosts = function (controls) {
             // continue old Object or start a new one
             if (typeof controls.previousObject === 'object' && controls.previousObject.length > 0) {
               results = JSON.stringify(controls.previousObject);
@@ -72,20 +57,18 @@
             }
             
             /* send requests to each media source */
-            self.getInstagram();
-            /**/
+            self.getInstagram(controls);
+            /*
             self.getFacebook();
             /*
             self.getTwitter();
             /*
             self.getGoogle();
             /**/
-            
         };
         
         /*Instagram Retrieval*/
-        self.getInstagram = function () {
-            var response = {};
+        self.getInstagram = function (controls) {
             
             // check that required resources are present
             if (typeof controls.instagram.clientId !== 'string' || controls.instagram.clientId.length <= 0) {
@@ -94,47 +77,42 @@
             if (typeof controls.instagram.userId !== 'string' || controls.instagram.userId.length <= 0) {
                 throw new Error("Missing userId for Instagram request.");
             }
-            /*
-            if (typeof controls.instagram.accessToken !== 'string' || controls.instagram.accessToken.length <= 0) {
-                var accessToken = 'https://api.instagram.com/oauth/authorize/?client_id='+ CLIENT-ID + '&redirect_uri=&response_type=token';
-            }
-            */
             
             // build url for request
             var url;
             if (typeof controls.instagram.nextUrl === 'undefined') {
-                console.log('No more Instagram posts are available');
-                self.finish('instagram', '');
+                url = 'https://api.instagram.com/v1/users/' + controls.instagram.userId + '/media/recent';
+                url += '?access_token=' + controls.instagram.accessToken;
+                url += '&count=' + controls.limit;
             } else {
                 if (typeof controls.instagram.nextUrl === 'string' && controls.instagram.nextUrl.length > 0) {
                     url = controls.instagram.nextUrl;
                 } else {
-                    url = 'https://api.instagram.com/v1/users/' + controls.instagram.userId + '/media/recent';
-                    url += '?access_token=' + controls.instagram.accessToken;
-                    url += '&count=' + controls.limit;
+                    console.log('There are no more Instagram posts to retrieve.');
+                    self.finish('instagram', '');
                 }
-                // send request for instagram posts
-                $.ajax({
-                    url: url,
-                    dataType: "jsonp",
-                    cache: false,
-                    success: function (responseText) {
-                        response = responseText;
-                        
-                        if (response.meta.code !== 200) throw new Error("Error from Instagram: " + response.meta.error_message);
-                        
-                        controls.instagram.nextUrl = '';
-                        if (response.pagination != null) {
-                          controls.instagram.nextUrl = response.pagination.next_url; // set nextURL
-                        }
-                        
-                        self.formatInstagram(response);
-                    },
-                    error: function () {
-                        self.finish('instagram', '');
-                    }
-                });
             }
+            // send request for instagram posts
+            $.ajax({
+                url: url,
+                dataType: "jsonp",
+                cache: false,
+                success: function (responseText) {
+                    var response = responseText;
+                    
+                    if (response.meta.code !== 200) throw new Error("Error from Instagram: " + response.meta.error_message);
+                    
+                    controls['instagram']['nextUrl'] = '';
+                    if (response.pagination != null) {
+                      controls['instagram']['nextUrl'] = response.pagination.next_url; // set nextURL
+                    }
+                    
+                    self.formatInstagram(response);
+                },
+                error: function () {
+                    self.finish('instagram', '');
+                }
+            });
         };
         /*Instagram JSON formatting for a universal JSON format*/
         self.formatInstagram = function (jsonPosts) {
@@ -175,7 +153,7 @@
             
             self.finish('instagram', instagramJSON);
         };
-        /*Facebook Retrieval*/
+        /*Facebook Retrieval
         self.getFacebook = function () {
             FB.init({
               appId      : controls.facebook.appId,
@@ -220,18 +198,12 @@
             }
         };
         
-        self.posts = function (num) {
-          var i = 0 || num + 1;
-          if (ajaxDone) {
-              return JSON.parse(results);
-          } else {
-              if (i > 50) {
-                console.log('Ajax calls took too long to respond.');
-                return controls.previousObject;
-              } else {
-                setTimeout(self.posts(i), 500);
-              }
-          }
+        self.isReady = function () {
+            return ajaxDone;
+        };
+        
+        self.posts = function () {
+            return JSON.parse(results);
         };
         
         return self;
