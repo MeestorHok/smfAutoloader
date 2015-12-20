@@ -7,54 +7,47 @@
             results = '{',
             controls = {
                 previousObject: {},
-                limit = 5,
+                limit: 5,
                 instagram: {
                     accessToken: '',
                     clientId: '',
                     userId: '',
-                    nextUrl: 'first'
+                    nextUrl: ''
                 },
                 facebook: {
                     accessToken: '',
                     clientId: '',
                     userId: '',
-                    nextUrl: 'first'
+                    nextUrl: ''
                 },
                 twitter: {
                     accessToken: '',
                     clientId: '',
                     userId: '',
-                    nextUrl: 'first'
+                    nextUrl: ''
                 },
                 google: {
                     accessToken: '',
                     clientId: '',
                     userId: '',
-                    nextUrl: 'first'
+                    nextUrl: ''
                 }
             };
         
-        self.getPosts = function (options) {
-          
-            controls.previousObject = options.previousObject || {};
-            controls.limit = Math.min(Math.floor(options.limit / (controls.length - 2)), 5) || 5;
+        self.getPosts = function (params) {
+            var option, value;
             
-            controls.instagram.accessToken = options.instagram.accessToken || '';
-            controls.instagram.clientId = options.instagram.clientId || '';
-            controls.instagram.userId = options.instagram.userId || '';
-            
-            controls.facebook.accessToken = options.facebook.accessToken || '';
-            controls.facebook.clientId = options.facebook.clientId || '';
-            controls.facebook.userId = options.facebook.userId || '';
-            
-            controls.twitter.accessToken = options.twitter.accessToken || '';
-            controls.twitter.clientId = options.twitter.clientId || '';
-            controls.twitter.userId = options.twitter.userId || '';
-            
-            controls.google.accessToken = options.google.accessToken || '';
-            controls.google.clientId = options.google.clientId || '';
-            controls.google.userId = options.google.userId || '';
-            
+            if (typeof params === 'object') {
+              for (option in params) {
+                value = params[option];
+                controls[option] = value;
+              }
+              controls.limit = Math.min(Math.floor(controls.limit / (controls.length - 2)), 5) || 5;
+              controls.instagram.nextUrl = controls.facebook.nextUrl = controls.twitter.nextUrl = controls.google.nextUrl = 'first';
+            } else {
+              throw new Error("smfAutoloader requires parameters in the form of an \"object\"");
+            }
+            console.log(controls);
             
             if (typeof controls.previousObject === 'object' && controls.previousObject.length > 0) {
               results = JSON.stringify(controls.previousObject);
@@ -89,7 +82,7 @@
             if (typeof controls.instagram.nextUrl === 'string' && controls.instagram.nextUrl.length > 0) {
                 var response = {};
                 
-                if (controls.instagram.nextUrl == 'first') { // get first iteration
+                if (controls.instagram.nextUrl == 'first') { // get first set
                     response = {"iter": "first"};
                 } else { // get next set
                     response = {"iter": controls.instagram.nextUrl}; // must return object
@@ -99,7 +92,7 @@
                 
                 return self.formatInstagram(response);
             } else { // there are no more posts available
-                return;
+                return '';
             }
         };
         /*Instagram JSON formatting for a universal JSON format*/
