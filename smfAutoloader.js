@@ -5,32 +5,75 @@
     smfAutoloader = new (function () {
         var self = this,
             results = '{',
-            paginationURLs = {
-                insta: 'first',
-                face: 'first',
-                twit: 'first',
-                goog: 'first'
+            controls = {
+                previousObject: {},
+                limit = 5,
+                instagram: {
+                    accessToken: '',
+                    clientId: '',
+                    userId: '',
+                    nextUrl: 'first'
+                },
+                facebook: {
+                    accessToken: '',
+                    clientId: '',
+                    userId: '',
+                    nextUrl: 'first'
+                },
+                twitter: {
+                    accessToken: '',
+                    clientId: '',
+                    userId: '',
+                    nextUrl: 'first'
+                },
+                google: {
+                    accessToken: '',
+                    clientId: '',
+                    userId: '',
+                    nextUrl: 'first'
+                }
             };
         
-        self.getPosts = function (maxPosts, previousArray) {
-            if (typeof previousArray === 'object') {
-              results = JSON.stringify(previousArray);
+        self.getPosts = function (options) {
+          
+            controls.previousObject = options.previousObject || {};
+            controls.limit = Math.min(Math.floor(options.limit / (controls.length - 2)), 5) || 5;
+            
+            controls.instagram.accessToken = options.instagram.accessToken || '';
+            controls.instagram.clientId = options.instagram.clientId || '';
+            controls.instagram.userId = options.instagram.userId || '';
+            
+            controls.facebook.accessToken = options.facebook.accessToken || '';
+            controls.facebook.clientId = options.facebook.clientId || '';
+            controls.facebook.userId = options.facebook.userId || '';
+            
+            controls.twitter.accessToken = options.twitter.accessToken || '';
+            controls.twitter.clientId = options.twitter.clientId || '';
+            controls.twitter.userId = options.twitter.userId || '';
+            
+            controls.google.accessToken = options.google.accessToken || '';
+            controls.google.clientId = options.google.clientId || '';
+            controls.google.userId = options.google.userId || '';
+            
+            
+            if (typeof controls.previousObject === 'object' && controls.previousObject.length > 0) {
+              results = JSON.stringify(controls.previousObject);
             } else {
               results = '{';
             }
             
-            var perSrc = Math.floor(maxPosts / 4);
-            if (results[results.length - 1] == '}') { // if results array is closed,
+            if (results[results.length - 1] == '}') { // if results array is closed, open it
                 results = results.substring(0, results.length - 1) + ',';
             }
+            
             /* instagram */
-            results += self.getInstagram(perSrc);
+            results += self.getInstagram();
             /* facebook
-            results += self.getFacebook.get(paginationURLs.face, perSrc);
+            results += self.getFacebook();
             /* twitter
-            results += self.getTwitter.get(paginationURLs.twit, perSrc);
+            results += self.getTwitter();
             /* google+
-            results += self.getGoogle.get(paginationURLs.goog, perSrc);
+            results += self.getGoogle();
             /**/
             
             if (results[results.length - 1] == ',') {
@@ -42,25 +85,25 @@
         };
         
         /*Instagram Retrieval*/
-        self.getInstagram = function (maxPosts) {
-            if (typeof paginationURLs.insta === 'string' && paginationURLs.insta.length > 0) {
-              var response = {};
-              
-              if (paginationURLs.insta == 'first') { // get first iteration
-                  response = {"iter": "first"};
-              } else { // get next set
-                  response = {"iter": paginationURLs.insta}; // must return object
-              }
-              
-              paginationURLs.insta = 'next'; // set nextURL
-              
-              return self.formatInstagramJSON(response);
+        self.getInstagram = function () {
+            if (typeof controls.instagram.nextUrl === 'string' && controls.instagram.nextUrl.length > 0) {
+                var response = {};
+                
+                if (controls.instagram.nextUrl == 'first') { // get first iteration
+                    response = {"iter": "first"};
+                } else { // get next set
+                    response = {"iter": controls.instagram.nextUrl}; // must return object
+                }
+                
+                controls.instagram.nextUrl = 'next'; // set nextURL
+                
+                return self.formatInstagram(response);
             } else { // there are no more posts available
-              return;
+                return;
             }
         };
         /*Instagram JSON formatting for a universal JSON format*/
-        self.formatInstagramJSON = function (jsonPosts) {
+        self.formatInstagram = function (jsonPosts) {
             var instagramJSON = '';
             
             for (var i = 0; i < jsonPosts['data'].length; i++) {

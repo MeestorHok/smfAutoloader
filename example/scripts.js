@@ -374,7 +374,15 @@ var mGrid = new (function () {
 })(); // grid: for positioning dynamic grid
 /**/
 function callSMF () {
-    posts = smfAutoloader.getPosts(20, posts); 
+    posts = smfAutoloader.getPosts({
+        previousObject: posts,
+        limit: 20,
+        instagram: {
+            accessToken: '{YOUR ACCESS TOKEN}',
+            clientId: '{YOUR INSTAGRAM CLIENT ID}',
+            userId: '{YOUR INSTAGRAM USER ID}'
+        }
+    });
     console.log(posts);
     //formatHTML(posts);
 }
