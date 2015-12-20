@@ -322,8 +322,9 @@ function formatHTML (json) {
         html += "</article>";
     });
     
+    $('#loadMore').remove();
     $('#posts').append(html);
-    $('#posts').append("<button class='smfPost' type='button' onclick=\"smfAutoloader.getPosts(20, 'next')\">Load More</button>");
+    $('#posts').append("<button id='loadMore' class='smfPost' style='height:50px' type='button' onclick='callSMF()'>Load More</button>");
     mGrid.setupBlocks();
 }
 /**/
@@ -374,17 +375,19 @@ var mGrid = new (function () {
 })(); // grid: for positioning dynamic grid
 /**/
 function callSMF () {
-    posts = smfAutoloader.getPosts({
+    smfAutoloader.getPosts({
         previousObject: posts,
         limit: 20,
         instagram: {
             accessToken: '{YOUR ACCESS TOKEN}',
-            clientId: '{YOUR INSTAGRAM CLIENT ID}',
-            userId: '{YOUR INSTAGRAM USER ID}'
+            clientId: '{YOUR CLIENT ID}',
+            userId: '{YOUR USER ID}'
         }
     });
-    console.log(posts);
-    //formatHTML(posts);
+    setTimeout(function () {
+        posts = smfAutoloader.posts();
+        formatHTML(posts);
+    }, 1000);
 }
 $(window).on("load", function () { // once everything is loaded
     callSMF();

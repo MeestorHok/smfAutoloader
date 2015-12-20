@@ -5,94 +5,134 @@
     smfAutoloader = new (function () {
         var self = this,
             results = '{',
+            instagramDone = false,
+            facebookDone = true, // set fo false after facebook is implemented
+            twitterDone = true, // set fo false after twitter is implemented
+            googleDone = true, // set fo false after google is implemented
+            ajaxDone = false,
             controls = {
                 previousObject: {},
                 limit: 5,
                 instagram: {
-                    accessToken: '',
                     clientId: '',
                     userId: '',
+                    accessToken: '',
                     nextUrl: ''
                 },
                 facebook: {
-                    accessToken: '',
                     clientId: '',
                     userId: '',
+                    accessToken: '',
                     nextUrl: ''
                 },
                 twitter: {
-                    accessToken: '',
                     clientId: '',
                     userId: '',
+                    accessToken: '',
                     nextUrl: ''
                 },
                 google: {
-                    accessToken: '',
                     clientId: '',
                     userId: '',
+                    accessToken: '',
                     nextUrl: ''
                 }
             };
         
         self.getPosts = function (params) {
-            var option, value;
-            
+            // set parameters for calls
+            var option, value, instaNext, faceNext, twitNext, googNext;
             if (typeof params === 'object') {
-              for (option in params) {
-                value = params[option];
-                controls[option] = value;
-              }
-              controls.limit = Math.min(Math.floor(controls.limit / (controls.length - 2)), 5) || 5;
-              controls.instagram.nextUrl = controls.facebook.nextUrl = controls.twitter.nextUrl = controls.google.nextUrl = 'first';
+                instaNext = controls.instagram.nextUrl;
+                faceNext = controls.facebook.nextUrl;
+                twitNext = controls.twitter.nextUrl;
+                googNext = controls.google.nextUrl;
+                for (option in params) {
+                  value = params[option];
+                  controls[option] = value;
+                }
+                controls.limit = Math.min(Math.floor(controls.limit / (controls.length - 2)), 5) || 5;
+                controls.instagram.nextUrl = instaNext;
+                controls.facebook.nextUrl = faceNext;
+                controls.twitter.nextUrl = twitNext;
+                controls.google.nextUrl = googNext;
             } else {
               throw new Error("smfAutoloader requires parameters in the form of an \"object\"");
             }
-            console.log(controls);
             
+            // continue old Object or start a new one
             if (typeof controls.previousObject === 'object' && controls.previousObject.length > 0) {
               results = JSON.stringify(controls.previousObject);
             } else {
               results = '{';
             }
-            
             if (results[results.length - 1] == '}') { // if results array is closed, open it
                 results = results.substring(0, results.length - 1) + ',';
             }
             
-            /* instagram */
-            results += self.getInstagram();
-            /* facebook
-            results += self.getFacebook();
-            /* twitter
-            results += self.getTwitter();
-            /* google+
-            results += self.getGoogle();
+            // send requests to each media source
+            self.getInstagram();
+            /*
+            self.getFacebook();
+            /*
+            self.getTwitter();
+            /*
+            self.getGoogle();
             /**/
             
-            if (results[results.length - 1] == ',') {
-                results = results.substring(0, results.length - 1);
-            }
-            results += '}';
-            
-            return JSON.parse(results);
         };
         
         /*Instagram Retrieval*/
         self.getInstagram = function () {
-            if (typeof controls.instagram.nextUrl === 'string' && controls.instagram.nextUrl.length > 0) {
-                var response = {};
-                
-                if (controls.instagram.nextUrl == 'first') { // get first set
-                    response = {"iter": "first"};
-                } else { // get next set
-                    response = {"iter": controls.instagram.nextUrl}; // must return object
+            var response = {};
+            
+            // check that required resources are present
+            if (typeof controls.instagram.clientId !== 'string' || controls.instagram.clientId.length <= 0) {
+                throw new Error("Missing clientId for Instagram request.");
+            }
+            if (typeof controls.instagram.userId !== 'string' || controls.instagram.userId.length <= 0) {
+                throw new Error("Missing userId for Instagram request.");
+            }
+            /*
+            if (typeof controls.instagram.accessToken !== 'string' || controls.instagram.accessToken.length <= 0) {
+                var accessToken = 'https://api.instagram.com/oauth/authorize/?client_id='+ CLIENT-ID + '&redirect_uri=&response_type=token';
+            }
+            */
+            
+            // build url for request
+            var url;
+            if (typeof controls.instagram.nextUrl === 'undefined') {
+                console.log('No more Instagram posts are available');
+                self.finish('instagram', '');
+            } else {
+                if (typeof controls.instagram.nextUrl === 'string' && controls.instagram.nextUrl.length > 0) {
+                    url = controls.instagram.nextUrl;
+                } else {
+                    url = 'https://api.instagram.com/v1/users/' + controls.instagram.userId + '/media/recent';
+                    url += '?access_token=' + controls.instagram.accessToken;
+                    url += '&count=' + controls.limit;
                 }
-                
-                controls.instagram.nextUrl = 'next'; // set nextURL
-                
-                return self.formatInstagram(response);
-            } else { // there are no more posts available
-                return '';
+                // send request for instagram posts
+                $.ajax({
+                    url: url,
+                    dataType: "jsonp",
+                    cache: false,
+                    success: function (responseText) {
+                        response = responseText;
+                        
+                        if (response.meta.code !== 200) throw new Error("Error from Instagram: " + response.meta.error_message);
+                        
+                        controls.instagram.nextUrl = '';
+                        if (response.pagination != null) {
+                          controls.instagram.nextUrl = response.pagination.next_url; // set nextURL
+                        }
+                        
+                        self.formatInstagram(response);
+                    },
+                    error: function () {
+                        self.finish('instagram', '');
+                    }
+                });
             }
         };
         /*Instagram JSON formatting for a universal JSON format*/
@@ -110,8 +150,10 @@
                     picLikeCount = post['likes']['count'],
                     picCommentCount = post['comments']['count'],
                     picSrc = post['images']['standard_resolution']['url'],
-                    picTimestampFormatted = date("ymdHis", post['created_time']); // yymmddhhmmss
-                
+                    picTimestampFormatted = (function (timestamp) {
+                                                return date("ymdHis", timestamp); // yymmddhhmmss
+                                            })(post['created_time']);
+                    
                 instagramJSON += '"'+picTimestampFormatted+'" : {';
                 instagramJSON += '"mediaSrc" : "'+picMediaSrc+'",';
                 instagramJSON += '"username" : "'+picUsername+'",';
@@ -130,9 +172,54 @@
                 instagramJSON += '},';
             }
             
-            return instagramJSON;
+            self.finish('instagram', instagramJSON);
         };
         /**/
+        
+        self.finish = function (src, posts) {
+            switch (src) {
+              case 'instagram':
+                results += posts;
+                instagramDone = true;
+                break;
+              case 'facebook':
+                results += posts;
+                facebookDone = true;
+                break;
+              case 'twitter':
+                results += posts;
+                twitterDone = true;
+                break;
+              case 'google':
+                results += posts;
+                googleDone = true;
+                break;
+              default:
+                break;
+            }
+            
+            if (instagramDone && facebookDone && twitterDone && googleDone) {
+                if (results[results.length - 1] == ',') {
+                    results = results.substring(0, results.length - 1);
+                }
+                results += '}';
+                ajaxDone = true;
+            }
+        };
+        
+        self.posts = function (num) {
+          var i = 0 || num + 1;
+          if (ajaxDone) {
+              return JSON.parse(results);
+          } else {
+              if (i > 50) {
+                console.log('Ajax calls took too long to respond.');
+                return controls.previousObject;
+              } else {
+                setTimeout(self.posts(i), 100);
+              }
+          }
+        };
         
         return self;
     })();
