@@ -58,8 +58,8 @@
             
             /* send requests to each media source */
             self.getInstagram(controls);
-            /*
-            self.getFacebook();
+            /**/
+            self.getFacebook(controls);
             /*
             self.getTwitter();
             /*
@@ -153,8 +153,8 @@
             
             self.finish('instagram', instagramJSON);
         };
-        /*Facebook Retrieval
-        self.getFacebook = function () {
+        /*Facebook Retrieval*/
+        self.getFacebook = function (controls) {
             FB.init({
               appId      : controls.facebook.appId,
               xfbml      : true,
