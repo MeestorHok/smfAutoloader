@@ -7,7 +7,7 @@
         var self = this,
             results = '{',
             instagramDone = false,
-            facebookDone = true, // set fo false after facebook is implemented
+            facebookDone = false,
             twitterDone = true, // set fo false after twitter is implemented
             googleDone = true, // set fo false after google is implemented
             ajaxDone = false; // will only be true once all others are finished
@@ -29,7 +29,6 @@
                         controls['instagram']['clientId'] = response['instagram']['clientId'];
                         controls['instagram']['userId'] = response['instagram']['userId'];
                         
-                        controls['facebook']['appId'] = response['facebook']['appId'];
                         controls['facebook']['userId'] = response['facebook']['userId'];
                         controls['facebook']['accessToken'] = response['facebook']['accessToken'];
                         
@@ -58,8 +57,8 @@
             
             /* send requests to each media source */
             self.getInstagram(controls);
-            /*
-            self.getFacebook();
+            /**/
+            self.getFacebook(controls);
             /*
             self.getTwitter();
             /*
@@ -92,6 +91,7 @@
                     self.finish('instagram', '');
                 }
             }
+            
             // send request for instagram posts
             $.ajax({
                 url: url,
@@ -122,18 +122,18 @@
                 var post = jsonPosts['data'][i],
                     picMediaSrc = 'instagram',
                     picType = 'photo',
-                    picText = post['caption']['text'],
-                    picUsername = post['user']['username'],
-                    picUserLink = 'https://www.instagram.com/'+post['user']['username']+'/',
-                    picLink = post['link'],
-                    picLikeCount = post['likes']['count'],
-                    picCommentCount = post['comments']['count'],
-                    picSrc = post['images']['standard_resolution']['url'],
-                    picTimestampFormatted = (function (timestamp) {
-                                                return date("ymdHis", timestamp); // yymmddhhmmss
-                                            })(post['created_time']);
+                    picText = post['caption']['text'] || '',
+                    picUsername = post['user']['username'] || '',
+                    picUserLink = 'https://www.instagram.com/'+post['user']['username']+'/' || '',
+                    picLink = post['link'] || '',
+                    picLikeCount = post['likes']['count'] || 0,
+                    picCommentCount = post['comments']['count'] || 0,
+                    picShareCount = 0,
+                    picSrc = post['images']['standard_resolution']['url'] || '',
+                    picTimestamp = post['created_time']; // in Unix format
                     
-                instagramJSON += '"'+picTimestampFormatted+'" : {';
+                instagramJSON += '"'+picTimestamp+'" : {'; // in Unix format to order later
+                instagramJSON += '"timestamp" : "'+picTimestamp+'",';
                 instagramJSON += '"mediaSrc" : "'+picMediaSrc+'",';
                 instagramJSON += '"username" : "'+picUsername+'",';
                 instagramJSON += '"userLink" : "'+picUserLink+'",';
@@ -142,27 +142,116 @@
                     instagramJSON += '"image" : "'+picSrc+'",';
                     instagramJSON += '"postLink" : "'+picLink+'",';
                     instagramJSON += '"postText" : "'+picText+'",';
-                    instagramJSON += '"shareLink" : "",';
-                    instagramJSON += '"shareTitle" : "",';
-                    instagramJSON += '"shareText" : "",';
                     instagramJSON += '"numLikes" : "'+picLikeCount+'",';
                     instagramJSON += '"numComments" : "'+picCommentCount+'",';
-                    instagramJSON += '"numRepubs" : ""}';
+                    instagramJSON += '"numRepubs" : "'+picShareCount+'"}';
                 instagramJSON += '},';
             }
             
             self.finish('instagram', instagramJSON);
         };
-        /*Facebook Retrieval
-        self.getFacebook = function () {
-            FB.init({
-              appId      : controls.facebook.appId,
-              xfbml      : true,
-              version    : 'v2.5'
+        /*Facebook Retrieval*/
+        self.getFacebook = function (controls) {
+            
+            // check that required resources are present
+            if (typeof controls.facebook.accessToken !== 'string' || controls.facebook.accessToken.length <= 0) {
+                throw new Error("Missing accessToken for Facebook request.");
+            }
+            if (typeof controls.facebook.userId !== 'string' || controls.facebook.userId.length <= 0) {
+                throw new Error("Missing userId for Facebook request.");
+            }
+            
+            // form url
+            var url;
+            if (typeof controls.facebook.nextUrl === 'undefined') {
+                url = 'https://graph.facebook.com/v2.5/' + controls.facebook.userId;
+                url += '?access_token=' + controls.facebook.accessToken;
+                url += '&fields=name,link,posts.limit(' + controls.limit + '){name,created_time,message,full_picture,type,link,likes,comments,shares}';
+            } else {
+                if (typeof controls.facebook.nextUrl === 'string' && controls.facebook.nextUrl.length > 0) {
+                    url = controls.facebook.nextUrl;
+                } else {
+                    console.log('There are no more Facebook posts to retrieve.');
+                    self.finish('facebook', '');
+                }
+            }
+            
+            // send request for instagram posts
+            $.ajax({
+                url: url,
+                dataType: "jsonp",
+                cache: false,
+                success: function (responseText) {
+                    var response = responseText;
+                    
+                    if (response.error !== undefined) throw new Error("Error from Facebook: " + response.error.message);
+                    
+                    controls['facebook']['nextUrl'] = '';
+                    if (response['posts']['paging'] != null) {
+                      controls['facebook']['nextUrl'] = response['posts']['paging']['next']; // set nextURL
+                    }
+                    
+                    self.formatFacebook(response);
+                },
+                error: function () {
+                    self.finish('facebook', '');
+                }
             });
-            FB.api("/" + controls.facebook.userId + "/feed", {limit: 5}, function(data){
-                console.log(data);
-            });
+        };
+        /*Facebook JSON formatting for a universal JSON format*/
+        self.formatFacebook = function (jsonPosts) {
+            
+            var facebookJSON = '';
+            
+            for (var i = 0; i < jsonPosts['posts']['data'].length; i++) {
+                var post = jsonPosts['posts']['data'][i],
+                    picMediaSrc = 'facebook',
+                    picType = post['type'] || 'status',
+                    picText = post['message'] || '',
+                    picUsername = jsonPosts['name'] || '',
+                    picUserLink = jsonPosts['link'] || '',
+                    picLink = post['link'] || '',
+                    picLikeCount = (function (likes) {
+                                        if (likes) {
+                                            return likes['data'].length;
+                                        } else {
+                                            return 0;
+                                        }
+                                    })(post['likes']) || 0,
+                    picCommentCount = (function (comments) {
+                                        if (comments) {
+                                            return comments['data'].length;
+                                        } else {
+                                            return 0;
+                                        }
+                                    })(post['comments']) || 0,
+                    picShareCount = (function (shares) {
+                                        if (shares) {
+                                            return shares['data'].length;
+                                        } else {
+                                            return 0;
+                                        }
+                                    })(post['shares']) || 0,
+                    picSrc = post['full_picture'] || '',
+                    picTimestamp = Date.parse(post['created_time']) / 1000; // in Unix format
+                    
+                facebookJSON += '"'+picTimestamp+'" : {'; // in Unix format to order later
+                facebookJSON += '"timestamp" : "'+picTimestamp+'",';
+                facebookJSON += '"mediaSrc" : "'+picMediaSrc+'",';
+                facebookJSON += '"username" : "'+picUsername+'",';
+                facebookJSON += '"userLink" : "'+picUserLink+'",';
+                facebookJSON += '"post" : {';
+                    facebookJSON += '"type" : "'+picType+'",';
+                    facebookJSON += '"image" : "'+picSrc+'",';
+                    facebookJSON += '"postLink" : "'+picLink+'",';
+                    facebookJSON += '"postText" : "'+picText+'",';
+                    facebookJSON += '"numLikes" : "'+picLikeCount+'",';
+                    facebookJSON += '"numComments" : "'+picCommentCount+'",';
+                    facebookJSON += '"numRepubs" : "'+picShareCount+'"}';
+                facebookJSON += '},';
+            }
+            
+            self.finish('facebook', facebookJSON);
         };
         /**/
         

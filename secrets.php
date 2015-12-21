@@ -1,19 +1,18 @@
 <?php
 
-function getAccessToken () {
-    return 'ascesddfasfdadfbsdfgasdfasdf';
+function getFBAccessToken () {
+    return '{YOUR APP ID}'.'|'.'{YOUR APP SECRET}'; // appID | appSecret
 }
 
 $secrets = [
     'instagram' => [
-        'accessToken' => '2174451614.0ae2446.f78af7031d1d4f3fb1f7234fae64e9b8',
-        'clientId' => '0ae24463d64b4169b39a3ab269ad7893',
-        'userId' => '2174451614'
+        'accessToken' => '{YOUR ACCESS TOKEN}',
+        'clientId' => '{YOUR CLIENT ID}',
+        'userId' => '{YOUR USER ID}'
     ],
     'facebook' => [
-        'appId' => '427622234114035',
-        'userId' => '100002662657327',
-        'accessToken' => getAccessToken()
+        'userId' => '{YOUR USER APP ID}', // scoped app user ID, not public user ID
+        'accessToken' => getFBAccessToken()
     ]
 ];
 
