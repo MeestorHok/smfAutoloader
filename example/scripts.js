@@ -374,19 +374,25 @@ var mGrid = new (function () {
     
 })(); // grid: for positioning dynamic grid
 /**/
+var timeLimit = 0;
 function getPosts () { // function to check if AJAX requests are finished and posts are ready to display
     if(smfAutoloader.isReady()) {
         posts = smfAutoloader.posts();
-        console.log(posts);
+        console.log('AJAX finished.');
         formatHTML(posts);
     } else {
-        console.log('AJAX requests still pending, trying again in 1 second...');
-        setTimeout(getPosts, 1000); // using a timer of a few seconds is recommended to prevent maxing out the call stack
+        if (timeLimit < 10) { // without a counter, if there is an error in the AJAX, this will continue looping forever
+            console.log('AJAX requests still pending, trying again in 1 second...');
+            timeLimit += 1;
+            setTimeout(getPosts, 1000); // using a timer of a few seconds is recommended to prevent maxing out the call stack
+        } else {
+            console.log('AJAX took too long to respond, please try again.');
+        }
     }
 }
-$(window).on("load", function () { // once everything is loaded
+$(window).on("load", function () {
     smfAutoloader.init(20, posts); // parameters are maxPosts and the posts object to append new posts to
-    getPosts();
+    getPosts(0); // custom function to ask for results from smfAutoloader
 });
 
 window.addEventListener('resize', function () { mGrid.setupBlocks(); }, false);
