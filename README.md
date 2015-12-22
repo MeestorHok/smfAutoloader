@@ -84,7 +84,7 @@ function formatHTML (json) { // this is the callback function
       html += '<a href="' + post['post']['link'] + '">';
         html += '<img src="' + post['post']['image'] + '" />';
       html += '</a>';
-    html += '</article>;
+    html += '</article>';
   }
   $('#posts').append(html); // add it to the DOM element of your choice
 }
@@ -107,7 +107,7 @@ function getPosts () {
 }
 ```
 
-> HTML results __MUST__ be appended to the element to avoid over-writing the previous posts
+> HTML results __MUST__ be appended to the element to avoid overriding the previous posts
 
 Then just call it!
 
