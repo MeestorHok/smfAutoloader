@@ -5,26 +5,56 @@
     smfAutoloader = new (function () {
    
         var self = this,
-            results = '{',
+            results,
             pagination = {
                 instagram: undefined,
                 facebook: undefined
             },
             instagramDone = false,
-            facebookDone = false,
-            ajaxDone = false; // will only be true once all others are finished
+            facebookDone = false;
         
-        self.getControls = function (maxPosts, previousObject) {
-            $.ajax({
-                url: '../secrets.php',
-                dataType: "json",
-                cache: false,
-                success: function (response) {
+        self.start = function (maxPosts, url) {
+            return self.getSecrets(maxPosts, url).then(function (controls) {
+                // continue old Object or start a new one
+                results = '{';
+                
+                if (results[results.length - 1] == '}') { // if results array is closed, open it
+                    results = results.substring(0, results.length - 1) + ',';
+                }
+                self.getInstagram(controls).then(function (response) { // get instagram posts
+                    instagramDone = true;
+                    results += self.formatInstagram(response); // format them and add to results
+                }, function (error) {
+                    instagramDone = true;
+                });
+                self.getFacebook(controls).then(function (response) { // get facebook posts
+                    facebookDone = true;
+                    results += self.formatFacebook(response); // format them and add to results
+                }, function (error) {
+                    facebookDone = true;
+                });
+            });
+        };
+        /*Generic ajax request in the form of a Promise*/
+        self.fetch = function (url, dataType) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: url,
+                    dataType: dataType,
+                    cache: false,
+                    success: function (response) { resolve(response); },
+                    error: function () { reject('There was an error fetching AJAX for '); }
+                });
+            });
+        };
+        /*Get access tokens and secret info from php*/
+        self.getSecrets = function (maxPosts, url) {
+            url = url || '/smfAutoloader/secrets.php';
+            return self.fetch(url, 'json').then( 
+                function (response) {
                     var controls = { instagram: {},
                                      facebook: {} };
                     if (typeof response === 'object') {
-                        
-                        controls['previousObject'] = previousObject || {}; // optional ability to continue on previous object
                         
                         controls['instagram']['userId'] = response['instagram']['userId'];
                         controls['instagram']['accessToken'] = response['instagram']['accessToken'];
@@ -34,38 +64,14 @@
                         
                         controls['limit'] = Math.max(Math.floor(maxPosts / (controls.length - 2)), 1) || 5;
                     } else {
-                      throw new Error("smfAutoloader requires secrets in the form of an \"object\"");
+                      throw new Error("smfAutoloader requires secrets in the form of an object from a php file.");
                     }
-                    self.fetch(maxPosts, previousObject, controls); // start getting posts
+                    return controls;
                 },
-                error: function () {
-                    throw new Error('There was an error retrieving secrets.');
-                }
-            });
+                function (error) {
+                    throw new Error(error + 'secrets.');
+                });
         };
-        
-        self.fetch = function (maxPosts, previousObject, controls) {
-            if(typeof controls !== 'object') {
-                self.getControls(maxPosts, previousObject);
-            } else {
-                // continue old Object or start a new one
-                if (typeof controls.previousObject === 'object' && controls.previousObject.length > 0) {
-                  results = JSON.stringify(controls.previousObject);
-                } else {
-                  results = '{';
-                }
-                if (results[results.length - 1] == '}') { // if results array is closed, open it
-                    results = results.substring(0, results.length - 1) + ',';
-                }
-                
-                /* send requests to each media source */
-                self.getInstagram(controls);
-                /**/
-                self.getFacebook(controls);
-                /**/
-            }
-        };
-        
         /*Instagram Retrieval*/
         self.getInstagram = function (controls) {
             
@@ -85,17 +91,13 @@
                     url = pagination.instagram;
                 } else {
                     console.log('There are no more Instagram posts to retrieve.');
-                    self.finish('instagram', '');
+                    return Promise.reject(Error('There are no more Instagram posts to retrieve.'));
                 }
             }
             
             // send request for instagram posts
-            $.ajax({
-                url: url,
-                dataType: "jsonp",
-                cache: false,
-                success: function (responseText) {
-                    var response = responseText;
+            return self.fetch(url, 'jsonp').then(
+                function(response) {
                     
                     if (response.meta.code !== 200) throw new Error("Error from Instagram: " + response.meta.error_message);
                     
@@ -105,17 +107,18 @@
                         if (pagination.instagram == undefined) pagination.instagram = '';
                     }
                     
-                    self.formatInstagram(response);
+                    return response;
                 },
-                error: function () {
-                    self.finish('instagram', '');
-                }
-            });
+                function (error) {
+                    console.log(error + 'Instagram.');
+                    return {};
+                });
         };
         /*Instagram JSON formatting for a universal JSON format*/
         self.formatInstagram = function (jsonPosts) {
             
             var instagramJSON = '';
+            
             if (jsonPosts['data'] !== undefined) {
             for (var i = 0; i < jsonPosts['data'].length; i++) {
                 var post = jsonPosts['data'][i],
@@ -145,10 +148,9 @@
                     instagramJSON += '"numComments" : "'+picCommentCount+'",';
                     instagramJSON += '"numRepubs" : "'+picShareCount+'"}';
                 instagramJSON += '},';
-            }
-            }
+            }}
             
-            self.finish('instagram', instagramJSON);
+            return instagramJSON;
         };
         /*Facebook Retrieval*/
         self.getFacebook = function (controls) {
@@ -172,17 +174,12 @@
                     url = pagination.facebook;
                 } else {
                     console.log('There are no more Facebook posts to retrieve.');
-                    self.finish('facebook', '');
+                    return Promise.reject(Error('There are no more Facebook posts to retrieve.'));
                 }
             }
             
-            // send request for facebook posts
-            $.ajax({
-                url: url,
-                dataType: "jsonp",
-                cache: false,
-                success: function (responseText) {
-                    var response = responseText;
+            return self.fetch(url, 'jsonp').then(
+                function (response) {
                     
                     if (response.error !== undefined) throw new Error("Error from Facebook: " + response.error.message);
                     
@@ -191,12 +188,12 @@
                       pagination.facebook = response['posts']['paging']['next']; // set nextURL
                     }
                     
-                    self.formatFacebook(response);
+                    return response;
                 },
-                error: function () {
-                    self.finish('facebook', '');
-                }
-            });
+                function (error) {
+                    console.log(error + 'Facebook.');
+                    return {};
+                });
         };
         /*Facebook JSON formatting for a universal JSON format*/
         self.formatFacebook = function (jsonPosts) {
@@ -250,59 +247,38 @@
                     facebookJSON += '"numComments" : "'+picCommentCount+'",';
                     facebookJSON += '"numRepubs" : "'+picShareCount+'"}';
                 facebookJSON += '},';
-            }
-            }
-            self.finish('facebook', facebookJSON);
+            }}
+            
+            return facebookJSON;
         };
         /**/
         
-        
-        self.finish = function (src, posts) {
-            switch (src) {
-              case 'instagram':
-                results += posts;
-                instagramDone = true;
-                break;
-              case 'facebook':
-                results += posts;
-                facebookDone = true;
-                break;
-              default:
-                break;
-            }
-            
-            if (instagramDone && facebookDone) {
-                if (results[results.length - 1] == ',') {
-                    results = results.substring(0, results.length - 1);
-                }
-                results += '}';
-                ajaxDone = true;
-            }
-        };
-        
-        self.isReady = function () {
-            return ajaxDone;
-        };
-        
-        self.posts = function () {
-            ajaxDone = instagramDone = facebookDone = false;
-            return JSON.parse(results);
-        };
-        
-        self.getPosts = function (maxPosts, previousObject, callback) {
-            self.fetch(maxPosts, previousObject);
-            return (function idle(counter) {// without a counter, any error in the AJAX will make this loop forever
-                if(self.isReady()) {
+        self.getPosts = function (callback, maxPosts, secretsUrl) {
+            self.start(maxPosts, secretsUrl);
+            return (function counter(num) {
+                if (instagramDone && facebookDone) {
+                    // close array
+                    if (results[results.length - 1] == ',') {
+                        results = results.substring(0, results.length - 1);
+                    }
+                    results += '}';
+                    
+                    // format results
+                    var json = JSON.parse(results);
+                    
                     console.log('AJAX finished.');
-                    callback(self.posts());
-                    return self.posts();
+                    instagramDone = facebookDone = false;
+                    
+                    // send results back
+                    callback(json);
+                    return json;
                 } else {
-                    if (counter > 0) { 
-                        console.log('AJAX requests still pending, trying again in 1 second...');
-                        setTimeout(function () { idle(counter - 1); }, 1000);
+                    if (num > 0) {
+                        console.log('AJAX still pending, trying again in 1 second...');
+                        setTimeout(function () { counter(num - 1) }, 1000);
                     } else {
-                        console.log('AJAX took too long to respond, please try again.');
-                        return previousObject;
+                        console.log('AJAX took too long to respond.');
+                        return {};
                     }
                 }
             })(10);

@@ -31,37 +31,85 @@ __Important:__ Make sure that `secrets.php` and `smfAutoloader.js` are in the __
 Once you have properly linked everything, you will have to ask smfAutoloader to get your posts.
 
 ```js
-smfAutoloader.getPosts(); // will return the posts
+smfAutoloader.getPosts(); // will fetch the posts, but it won't do anything with them.
 ```
 
-But there are three __Required__ parameters:
+Before it can do anything, it needs some parameters:
 
-__Required Parameters -__
+__Parameters -__
++ `callback` - __Required__. This is the custom function you define to handle the results.
 + `maxPosts` - This is total number of posts to retrieve. smfAutoloader will divide this number by the amount of accounts you use.
-+ `previousObject` - This is the object smfAutoloader will append its posts to. This is how it creates pagination.
-+ `callback` - This is the custom function you define to handle the results (to put it onto the DOM)
++ `secretsUrl` - This is the url of the secrets.php file smfAutoloader will retrieve its info from. by default, this is '/smfAutoloader/secrets.php'
+
 
 ```js
-var posts;
-function formatHTML (json) {}
-
-smfAutoloader.getPosts(20, posts, formatHTML); // minimum to get the plugin to work
+smfAutoloader.getPosts(formatHTML, 20, '/smfAutoloader/secrets.php'); // this will get 20 posts and send them to formatHTML in a JSON array
 ```
 
-## Pagination
+But what does the JSON array _look_ like?
 
-To add each call to the previous one, you must include a variable to append it to.
+## JSON Results
 
 ```js
-var posts;
-function formatHTML (json) {}
+  {
+    "{Unix timestamp}" : {
+      "username" : "{Username of user's account}",
+      "mediaSrc" : "{What social media account the post is from}",
+      "userLink" : "{Link to the user's account}",
+      "timestamp" : "{Unix timestamp}",
+      "post" : {
+        "type" : "{Photo if there is an image, Status if just text}",
+        "image" : "{Image of post}",
+        "postText" : "{Text of post}",
+        "postLink" : "{Link to post}",
+        "numComments" : "{Number of comments on post}",
+        "numLikes" : "{Number of likes on post}",
+        "numRepubs" : "{Number of Repubs or Shares on post}",
+      }
+    }, 
+    "{Another timestamp of next post}" : {}, ...
+  }
+```
 
-function getPosts () {
-  posts = smfAutoloader.getPosts(20, posts, formatHTML); // this will set posts to be a javascript object from json
+Access these variables by iterating through all the posts:
+
+```js
+function formatHTML (json) { // this is the callback function
+  var html = ''; // string to append all html to
+  $.each(json, function (timestamp, post) { // then access each post individually
+    html += '<article>';
+      html += '<a href="' + post['userLink'] + '">';
+        html += '<h1>' + post['username'] + '</h1>';
+      html += '</a>';
+      html += '<a href="' + post['post']['link'] + '">';
+        html += '<img src="' + post['post']['image'] + '" />';
+      html += '</a>';
+    html += '</article>;
+  }
+  $('#posts').append(html); // add it to the DOM element of your choice
 }
 ```
 
-and then call it!
+You can get way more detailed than that, but that is the basic setup!
+
+## Pagination
+
+Pagination is built into smfAutoloader, so all you have to do is have a callback that appends the results to the same element.
+
+```js
+function formatHTML (json) {
+  // format JSON into HTML
+  $('#posts').append(html); // you must APPEND the results to achieve pagination
+}
+
+function getPosts () {
+  smfAutoloader.getPosts(formatHTML, 20, '/smfAutoloader/secrets.php');
+}
+```
+
+> HTML results __MUST__ be appended to the element to avoid over-writing the previous posts
+
+Then just call it!
 
 ```js
 $(window).on("load", function () {
@@ -74,6 +122,13 @@ or
 ```
 
 ## Change Log
+
+__1.0.1__
+
+- Moved to Promises instead of normal async to prepare for TDD
+- Added files necessary to move to TDD
+- Pagination is now inherently present by simply appending results to the same DOM element
+- Added ability to use custom url for secrets.php
 
 __1.0.0__
 

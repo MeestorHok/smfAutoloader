@@ -1,4 +1,3 @@
-var posts;
 /**/
 function date(format, timestamp) {
   //  discuss at: http://phpjs.org/functions/date/
@@ -287,6 +286,7 @@ function ucfirst(str) {
 } // php ucfirst function for JS from http://www.corelangs.com/js/string/cap.html#sthash.H5Mt7Hst.dpuf
 /**/
 function formatHTML (json) {
+    console.log(json);
     var html = "";
     $.each(json, function (timestamp,post) {
         html += "<article class='smfPost'>";
@@ -309,7 +309,7 @@ function formatHTML (json) {
             }
             html += "<p class='smfText'>"+post['post']['postText']+"</p>";
             html += "<div class='smfDetails'>";
-                html += "<span class='smfDate'>"+date("F j, Y", timestamp)+"</span>";
+                html += "<span class='smfDate'>"+date("F j, Y", post['timestamp'])+"</span>";
                 html += "<span class='smfViews'>"+post['post']['numLikes']+"&nbsp;<i class='fa fa-heart-o'></i>";
                 if (post['mediaSrc'] == 'facebook' || post['mediaSrc'] == 'instagram' || post['mediaSrc'] == 'google') {
                     html += "&nbsp;&nbsp;"+post['post']['numComments']+"&nbsp;<i class='fa fa-comments-o'></i>";
@@ -376,7 +376,7 @@ var mGrid = new (function () {
 })(); // grid: for positioning dynamic grid
 /**/
 function getPosts () {
-    posts = smfAutoloader.getPosts(20, posts, formatHTML); // maxPosts, previousObject, callback
+    smfAutoloader.getPosts(formatHTML, 20, '/smfAutoloader/secrets.php'); // callback, maxPosts, secretsUrl
 }
 
 $(window).on("load", function () {

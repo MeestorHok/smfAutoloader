@@ -7,7 +7,7 @@ $secrets = [
     ],
     'facebook' => [
         'userId' => '{YOUR USER APP ID}', // scoped app user ID, not public user ID
-        'accessToken' => '{YOUR APP ID}'.'|'.'{YOUR APP SECRET}'; // appID | appSecret
+        'accessToken' => '{YOUR APP ID}'.'|'.'{YOUR APP SECRET}' // appID | appSecret
     ]
 ];
 
