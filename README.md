@@ -1,3 +1,5 @@
+### THIS IS JUST FOR DEMONSTRATION PURPOSES, FOR SECURITY REASONS, YOU SHOULD NEVER RUN THIS ON A LIVE SITE. NEVER PASS PASSWORDS AND SECRETS TO JAVASCRIPT.
+
 # smfAutoloader
 Javascript and PHP plugin to retrieve social media feeds from all of your accounts to create a dynamic blog.
 
